@@ -194,7 +194,7 @@ class TCCRawToDataModelMapping:
         core_assignments: list[tcc_types.CoreIsolateAssignment] = []
 
         for doc in docs:
-            core_sched_section = doc.get("core-scheduling")
+            core_sched_section = doc.get("core-isolation")
             if not isinstance(core_sched_section, dict):
                 continue
 
