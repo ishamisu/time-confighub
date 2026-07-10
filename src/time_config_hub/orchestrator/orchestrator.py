@@ -525,17 +525,24 @@ class Orchestrator:
         """
         svc_label = request.service_type.value if request.service_type else "pipeline"
         self._log(f"[Orchestrator] Received service command: {svc_label}/{request.command.value}")
+        cmd_label = f"{svc_label}/{request.command.value}"
         try:
             data = handle_service_request(self._hub_service, request)
-            self._log(f"[Orchestrator][{svc_label}] {request.command.value} completed successfully")
+            success = data if isinstance(data, bool) else True
+            if not success:
+                error_msg = f"{cmd_label} reported failure (see daemon logs for details)"
+                self._errors.append(error_msg)
+                logger.error(error_msg)
+            else:
+                self._log(f"[Orchestrator][{cmd_label}] command executed.")
             return ServiceResult(
-                success=True,
+                success=success,
                 logs=list(self._logs),
-                errors=[],
+                errors=list(self._errors),
                 data=data,
             )
         except Exception as exc:
-            logger.exception("Service command [%s/%s] failed", svc_label, request.command.value)
+            logger.exception("Service command [%s] failed", cmd_label)
             self._errors.append(str(exc))
             return ServiceResult(
                 success=False,
