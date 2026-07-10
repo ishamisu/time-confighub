@@ -194,12 +194,12 @@ class TCCRawToDataModelMapping:
         core_assignments: list[tcc_types.CoreIsolateAssignment] = []
 
         for doc in docs:
-            core_sched_section = doc.get("core-isolation")
-            if not isinstance(core_sched_section, dict):
+            core_isolate_section = doc.get("core-isolation")
+            if not isinstance(core_isolate_section, dict):
                 continue
 
             section_found = True
-            assignments = TCCRawToDataModelMapping._convert_to_list(core_sched_section.get("core-assignment", []))
+            assignments = TCCRawToDataModelMapping._convert_to_list(core_isolate_section.get("core-assignment", []))
 
             for assignment in assignments:
 
