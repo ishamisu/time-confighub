@@ -10,7 +10,9 @@ configuration elements, and validate TCC profiles.
 
 from typing import Any, Dict, List, Optional, Set
 
-from time_config_hub.services.tcc.schemas.tcc_data_mapping import TCCRawToDataModelMapping
+from time_config_hub.services.tcc.schemas.tcc_data_mapping import (
+    TCCRawToDataModelMapping,
+)
 from time_config_hub.services.tcc.schemas.tcc_data_types import (
     CoreFrequency,
     CoreIsolationPlan,
@@ -36,7 +38,9 @@ class TCCConfigDataAPI:
         :param List[Dict[str, Any]] documents: Parsed configuration documents from UniversalParser
         :raises InvalidInputDataError: If profile-id is missing from documents
         """
-        self.mapped_data = TCCRawToDataModelMapping.documents_to_tcc_data_model(documents)
+        self.mapped_data = TCCRawToDataModelMapping.documents_to_tcc_data_model(
+            documents
+        )
 
     @property
     def profile_id(self) -> str:
@@ -154,7 +158,9 @@ class TCCConfigDataAPI:
         """
         if not self.mapped_data.core_frequency:
             return None
-        for assignment in self.mapped_data.core_frequency.profile_assignments.core_assignments:
+        for (
+            assignment
+        ) in self.mapped_data.core_frequency.profile_assignments.core_assignments:
             if assignment.core_id == core_id:
                 return assignment.profile_ref
         return None
@@ -186,7 +192,9 @@ class TCCConfigDataAPI:
             return []
 
         core_ids = []
-        for assignment in self.mapped_data.core_frequency.profile_assignments.core_assignments:
+        for (
+            assignment
+        ) in self.mapped_data.core_frequency.profile_assignments.core_assignments:
             if assignment.profile_ref == profile_id:
                 core_ids.append(assignment.core_id)
         return core_ids
@@ -207,7 +215,9 @@ class TCCConfigDataAPI:
 
         # Check Core isolation vs frequency assignments
         if self.mapped_data.core_isolation and self.mapped_data.core_frequency:
-            scheduled_cores = {a.core_id for a in self.mapped_data.core_isolation.assignments}
+            scheduled_cores = {
+                a.core_id for a in self.mapped_data.core_isolation.assignments
+            }
             assigned_cores = {
                 assignment.core_id
                 for assignment in self.mapped_data.core_frequency.profile_assignments.core_assignments
@@ -221,11 +231,15 @@ class TCCConfigDataAPI:
 
             extra_assignments = assigned_cores - scheduled_cores
             if extra_assignments:
-                issues.append(f"Cores assigned to frequency profile but not scheduled: {extra_assignments}")
+                issues.append(
+                    f"Cores assigned to frequency profile but not scheduled: {extra_assignments}"
+                )
 
         # Check profile references are valid
         if self.mapped_data.core_frequency:
-            valid_profiles = set(self.mapped_data.core_frequency.frequency_profiles.keys())
+            valid_profiles = set(
+                self.mapped_data.core_frequency.frequency_profiles.keys()
+            )
             referenced_profiles = {
                 assignment.profile_ref
                 for assignment in self.mapped_data.core_frequency.profile_assignments.core_assignments

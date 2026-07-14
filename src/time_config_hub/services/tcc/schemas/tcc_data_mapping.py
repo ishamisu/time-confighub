@@ -32,7 +32,9 @@ class TCCRawToDataModelMapping:
     """
 
     @staticmethod
-    def documents_to_tcc_data_model(documents: list[dict[str, Any]]) -> tcc_types.TccConfigProfile:
+    def documents_to_tcc_data_model(
+        documents: list[dict[str, Any]],
+    ) -> tcc_types.TccConfigProfile:
         """
         Convert raw parsed documents to a TCC profile dataclass instance.
 
@@ -52,20 +54,28 @@ class TCCRawToDataModelMapping:
                 "Remove the duplicate tcc-config root element(s) and resubmit."
             )
 
-        roots = [TCCRawToDataModelMapping._resolve_profile_root(doc) for doc in documents]
+        roots = [
+            TCCRawToDataModelMapping._resolve_profile_root(doc) for doc in documents
+        ]
         if not roots:
-            raise InvalidInputDataError("No valid document dictionaries provided for TCC profile mapping")
+            raise InvalidInputDataError(
+                "No valid document dictionaries provided for TCC profile mapping"
+            )
 
         doc = roots[0]
         profile_id = TCCRawToDataModelMapping._extract_string(doc, "profile-id")
         if not profile_id:
             raise InvalidInputDataError("TCC profile must contain 'profile-id'")
 
-        profile_description = TCCRawToDataModelMapping._extract_string(doc, "profile-description")
+        profile_description = TCCRawToDataModelMapping._extract_string(
+            doc, "profile-description"
+        )
         core_isolation = TCCRawToDataModelMapping._map_core_isolation(roots)
         core_frequency = TCCRawToDataModelMapping._map_core_frequency(roots)
         uncore_frequency = TCCRawToDataModelMapping._map_uncore_frequency(roots)
-        platform_qos_resource_config = TCCRawToDataModelMapping._map_platform_qos_resource_config(roots)
+        platform_qos_resource_config = (
+            TCCRawToDataModelMapping._map_platform_qos_resource_config(roots)
+        )
 
         return tcc_types.TccConfigProfile(
             profile_id=profile_id,
@@ -180,9 +190,10 @@ class TCCRawToDataModelMapping:
 
         return []
 
-
     @staticmethod
-    def _map_core_isolation(docs: list[dict[str, Any]]) -> Optional[tcc_types.CoreIsolationPlan]:
+    def _map_core_isolation(
+        docs: list[dict[str, Any]],
+    ) -> Optional[tcc_types.CoreIsolationPlan]:
         """
         Map core isolation scheduling section from documents to CoreIsolationPlan dataclass.
 
@@ -199,7 +210,9 @@ class TCCRawToDataModelMapping:
                 continue
 
             section_found = True
-            assignments = TCCRawToDataModelMapping._convert_to_list(core_isolate_section.get("core-assignment", []))
+            assignments = TCCRawToDataModelMapping._convert_to_list(
+                core_isolate_section.get("core-assignment", [])
+            )
 
             for assignment in assignments:
 
@@ -208,7 +221,9 @@ class TCCRawToDataModelMapping:
 
                 if core_id is not None:
                     core_assignments.append(
-                        tcc_types.CoreIsolateAssignment(core_id=core_id, isolate=isolate)
+                        tcc_types.CoreIsolateAssignment(
+                            core_id=core_id, isolate=isolate
+                        )
                     )
 
         if not section_found:
@@ -216,7 +231,9 @@ class TCCRawToDataModelMapping:
         return tcc_types.CoreIsolationPlan(assignments=core_assignments)
 
     @staticmethod
-    def _map_core_frequency(docs: list[dict[str, Any]]) -> Optional[tcc_types.CoreFrequency]:
+    def _map_core_frequency(
+        docs: list[dict[str, Any]],
+    ) -> Optional[tcc_types.CoreFrequency]:
         """
         Map Core frequency section from documents to CoreFrequency dataclass.
 
@@ -242,18 +259,28 @@ class TCCRawToDataModelMapping:
             for freq_profile in freq_profile_list:
 
                 # Get Profile ID (required)
-                profile_id = TCCRawToDataModelMapping._extract_string(freq_profile, "profile-id")
+                profile_id = TCCRawToDataModelMapping._extract_string(
+                    freq_profile, "profile-id"
+                )
                 if not profile_id:
-                    raise InvalidInputDataError("Each frequency-profile must contain a 'profile-id'")
+                    raise InvalidInputDataError(
+                        "Each frequency-profile must contain a 'profile-id'"
+                    )
 
                 # Get Core Frequency Control settings
                 frequency_info = freq_profile.get("frequency", {})
                 if not isinstance(frequency_info, dict):
                     frequency_info = {}
 
-                governor = TCCRawToDataModelMapping._extract_string(frequency_info, "governor")
-                min_freq = TCCRawToDataModelMapping._extract_int(frequency_info, "min-freq-mhz")
-                max_freq = TCCRawToDataModelMapping._extract_int(frequency_info, "max-freq-mhz")
+                governor = TCCRawToDataModelMapping._extract_string(
+                    frequency_info, "governor"
+                )
+                min_freq = TCCRawToDataModelMapping._extract_int(
+                    frequency_info, "min-freq-mhz"
+                )
+                max_freq = TCCRawToDataModelMapping._extract_int(
+                    frequency_info, "max-freq-mhz"
+                )
 
                 # Get C-State Idle Control settings
                 idle_info = freq_profile.get("idle", {})
@@ -267,8 +294,12 @@ class TCCRawToDataModelMapping:
 
                 for state_override in state_override_list:
 
-                    state_id = TCCRawToDataModelMapping._extract_int(state_override, "state-id")
-                    action = TCCRawToDataModelMapping._extract_string(state_override, "action")
+                    state_id = TCCRawToDataModelMapping._extract_int(
+                        state_override, "state-id"
+                    )
+                    action = TCCRawToDataModelMapping._extract_string(
+                        state_override, "action"
+                    )
                     if state_id is not None and action in ("enable", "disable"):
                         state_overrides.append(
                             tcc_types.StateOverride(
@@ -278,7 +309,9 @@ class TCCRawToDataModelMapping:
                         )
 
                 idle_config = tcc_types.IdleConfig(
-                    enable_all=TCCRawToDataModelMapping._extract_bool(idle_info, "enable-all"),
+                    enable_all=TCCRawToDataModelMapping._extract_bool(
+                        idle_info, "enable-all"
+                    ),
                     disable_by_latency_us=TCCRawToDataModelMapping._extract_int(
                         idle_info, "disable-by-latency-us"
                     ),
@@ -305,12 +338,18 @@ class TCCRawToDataModelMapping:
 
             for core_assignment in core_assign_list:
 
-                core_id = TCCRawToDataModelMapping._extract_int(core_assignment, "core-id")
-                profile_ref = TCCRawToDataModelMapping._extract_string(core_assignment, "profile-ref")
+                core_id = TCCRawToDataModelMapping._extract_int(
+                    core_assignment, "core-id"
+                )
+                profile_ref = TCCRawToDataModelMapping._extract_string(
+                    core_assignment, "profile-ref"
+                )
 
                 if core_id is not None and profile_ref:
                     core_assignments.append(
-                        tcc_types.CoreAssignment(core_id=core_id, profile_ref=profile_ref)
+                        tcc_types.CoreAssignment(
+                            core_id=core_id, profile_ref=profile_ref
+                        )
                     )
 
         if not section_found:
@@ -318,11 +357,15 @@ class TCCRawToDataModelMapping:
 
         return tcc_types.CoreFrequency(
             frequency_profiles=freq_profiles,
-            profile_assignments=tcc_types.ProfileAssignment(core_assignments=core_assignments),
+            profile_assignments=tcc_types.ProfileAssignment(
+                core_assignments=core_assignments
+            ),
         )
 
     @staticmethod
-    def _map_uncore_frequency(docs: list[dict[str, Any]]) -> Optional[tcc_types.UncoreFrequency]:
+    def _map_uncore_frequency(
+        docs: list[dict[str, Any]],
+    ) -> Optional[tcc_types.UncoreFrequency]:
         """
         Map uncore frequency section from documents.
 
@@ -345,9 +388,15 @@ class TCCRawToDataModelMapping:
 
             for core_ring_freq in core_ring_freq_list:
 
-                core_id = TCCRawToDataModelMapping._extract_int(core_ring_freq, "core-id")
-                min_ring_ratio = TCCRawToDataModelMapping._extract_int(core_ring_freq, "min-ring-ratio")
-                max_ring_ratio = TCCRawToDataModelMapping._extract_int(core_ring_freq, "max-ring-ratio")
+                core_id = TCCRawToDataModelMapping._extract_int(
+                    core_ring_freq, "core-id"
+                )
+                min_ring_ratio = TCCRawToDataModelMapping._extract_int(
+                    core_ring_freq, "min-ring-ratio"
+                )
+                max_ring_ratio = TCCRawToDataModelMapping._extract_int(
+                    core_ring_freq, "max-ring-ratio"
+                )
 
                 if core_id is None or min_ring_ratio is None or max_ring_ratio is None:
                     continue
@@ -390,7 +439,9 @@ class TCCRawToDataModelMapping:
 
             for core_pqr_assoc in core_pqr_assoc_list:
 
-                core_id = TCCRawToDataModelMapping._extract_int(core_pqr_assoc, "core-id")
+                core_id = TCCRawToDataModelMapping._extract_int(
+                    core_pqr_assoc, "core-id"
+                )
                 class_of_service_id = TCCRawToDataModelMapping._extract_int(
                     core_pqr_assoc,
                     "class-of-service-id",

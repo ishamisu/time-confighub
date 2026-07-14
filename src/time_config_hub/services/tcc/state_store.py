@@ -37,7 +37,9 @@ class TCCStateStore:
                 "snapshot_file": str(tcc_snapshot_file),
                 "last_applied_utc": datetime.now(timezone.utc).isoformat(),
             }
-            self.state_file.write_text(json.dumps(tcc_state, indent=2), encoding="utf-8")
+            self.state_file.write_text(
+                json.dumps(tcc_state, indent=2), encoding="utf-8"
+            )
 
         except Exception as exc:
             raise TCCConfigError("Failed to apply TCC configuration") from exc

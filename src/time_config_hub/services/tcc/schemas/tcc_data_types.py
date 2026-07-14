@@ -36,19 +36,11 @@ from typing import Literal, Optional
 # ==========================================
 
 PowerGovernor = Literal[
-    "performance",
-    "powersave",
-    "ondemand",
-    "schedutil",
-    "userspace",
-    "conservative"
+    "performance", "powersave", "ondemand", "schedutil", "userspace", "conservative"
 ]
 
 
-IdleAction = Literal[
-    "enable",
-    "disable"
-]
+IdleAction = Literal["enable", "disable"]
 
 
 # Avoid mutable defaults: use default_factory with helpers for lists/dicts.
@@ -81,6 +73,7 @@ def _default_core_qos_associations() -> list["CoreQosAssociation"]:
 @dataclass
 class CoreIsolateAssignment:
     """Represents a single core isolation assignment."""
+
     core_id: int
     isolate: bool
 
@@ -88,14 +81,20 @@ class CoreIsolateAssignment:
 @dataclass
 class ResourceMonitoringConfig:
     """Resource monitoring configuration for a Core."""
+
     enabled: bool
-    rmid_id: Optional[int] = None           # When enabled=true, identifies the RMID to use for monitoring
-    rmid_label: Optional[str] = None        # Optional human-readable label for the RMID, useful for logging and debugging
+    rmid_id: Optional[int] = (
+        None  # When enabled=true, identifies the RMID to use for monitoring
+    )
+    rmid_label: Optional[str] = (
+        None  # Optional human-readable label for the RMID, useful for logging and debugging
+    )
 
 
 @dataclass
 class CoreQosAssociation:
     """Represents a single Core to QoS class association."""
+
     core_id: int
     class_of_service_id: int
     resource_monitoring: ResourceMonitoringConfig
@@ -112,6 +111,7 @@ class ProfileInfo:
 @dataclass
 class StateOverride:
     """Represents an override for a specific C-state."""
+
     state_id: int
     action: IdleAction
 
@@ -119,14 +119,20 @@ class StateOverride:
 @dataclass
 class IdleConfig:
     """Idle configuration for a frequency profile."""
+
     enable_all: bool = False
-    disable_by_latency_us: Optional[int] = None  # If set, disables C-states with exit latency above this threshold
-    state_overrides: list[StateOverride] = field(default_factory=_default_state_overrides)
+    disable_by_latency_us: Optional[int] = (
+        None  # If set, disables C-states with exit latency above this threshold
+    )
+    state_overrides: list[StateOverride] = field(
+        default_factory=_default_state_overrides
+    )
 
 
 @dataclass
 class FrequencyConfig:
     """Represents frequency configuration for a profile."""
+
     governor: PowerGovernor
     min_freq_mhz: int
     max_freq_mhz: int
@@ -134,15 +140,20 @@ class FrequencyConfig:
     def validate(self) -> None:
         # must: max >= min
         if self.max_freq_mhz < self.min_freq_mhz:
-            raise ValueError(f"Invalid frequency configuration: max_freq_mhz ({self.max_freq_mhz}) must be >= min_freq_mhz ({self.min_freq_mhz})")
+            raise ValueError(
+                f"Invalid frequency configuration: max_freq_mhz ({self.max_freq_mhz}) must be >= min_freq_mhz ({self.min_freq_mhz})"
+            )
         # must: if governor == "performance" then min_freq_mhz == max_freq_mhz
         if self.governor == "performance" and self.min_freq_mhz != self.max_freq_mhz:
-            raise ValueError(f"Invalid frequency configuration: for 'performance' governor, min_freq_mhz ({self.min_freq_mhz}) must equal max_freq_mhz ({self.max_freq_mhz})")
+            raise ValueError(
+                f"Invalid frequency configuration: for 'performance' governor, min_freq_mhz ({self.min_freq_mhz}) must equal max_freq_mhz ({self.max_freq_mhz})"
+            )
 
 
 @dataclass
 class FrequencyProfile:
     """Represents a Core frequency profile."""
+
     profile_id: str
     frequency_config: FrequencyConfig
     idle_config: Optional[IdleConfig] = None
@@ -151,6 +162,7 @@ class FrequencyProfile:
 @dataclass
 class CoreAssignment:
     """Represents assignment of a Core to a frequency profile."""
+
     core_id: int
     profile_ref: str  # Reference to FrequencyProfile.profile_id
 
@@ -158,12 +170,16 @@ class CoreAssignment:
 @dataclass
 class ProfileAssignment:
     """Represents the Core to frequency profile assignments."""
-    core_assignments: list[CoreAssignment] = field(default_factory=_default_core_assignments)
+
+    core_assignments: list[CoreAssignment] = field(
+        default_factory=_default_core_assignments
+    )
 
 
 @dataclass
 class CoreRingRatio:
     """Represents uncore frequency configuration for a single Core."""
+
     core_id: int
     min_ring_ratio: int
     max_ring_ratio: int
@@ -174,17 +190,26 @@ class CoreRingRatio:
 # TCC Data Model
 # ==========================================
 
+
 @dataclass
 class CoreIsolationPlan:
     """Core scheduling configuration."""
-    assignments: list[CoreIsolateAssignment] = field(default_factory=_default_isolate_assignments)
+
+    assignments: list[CoreIsolateAssignment] = field(
+        default_factory=_default_isolate_assignments
+    )
 
 
 @dataclass
 class CoreFrequency:
     """Core frequency configuration."""
-    frequency_profiles: dict[str, FrequencyProfile] = field(default_factory=_default_frequency_profiles)  # profile_id -> FrequencyProfile
-    profile_assignments: ProfileAssignment = field(default_factory=ProfileAssignment)  # Core to profile assignments
+
+    frequency_profiles: dict[str, FrequencyProfile] = field(
+        default_factory=_default_frequency_profiles
+    )  # profile_id -> FrequencyProfile
+    profile_assignments: ProfileAssignment = field(
+        default_factory=ProfileAssignment
+    )  # Core to profile assignments
 
     def validate(self) -> None:
         for profile in self.frequency_profiles.values():
@@ -193,12 +218,15 @@ class CoreFrequency:
         # leafref integrity: profile_ref must exist in frequency_profiles
         for a in self.profile_assignments.core_assignments:
             if a.profile_ref not in self.frequency_profiles:
-                raise ValueError(f"Invalid profile assignment: Core {a.core_id} references undefined profile '{a.profile_ref}'")
+                raise ValueError(
+                    f"Invalid profile assignment: Core {a.core_id} references undefined profile '{a.profile_ref}'"
+                )
 
 
 @dataclass
 class UncoreFrequency:
     """Uncore frequency configuration."""
+
     ring_freqs: list[CoreRingRatio] = field(default_factory=_default_ring_freqs)
 
 
@@ -206,7 +234,9 @@ class UncoreFrequency:
 class PlatformQosResourceConfig:
     """Platform QoS resource configuration container."""
 
-    core_qos_associations: list[CoreQosAssociation] = field(default_factory=_default_core_qos_associations)
+    core_qos_associations: list[CoreQosAssociation] = field(
+        default_factory=_default_core_qos_associations
+    )
 
 
 @dataclass
