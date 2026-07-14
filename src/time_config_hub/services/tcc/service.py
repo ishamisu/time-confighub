@@ -9,8 +9,12 @@ check the status of Intel TCC configurations.
 
 It uses the ConfigParserService for parsing configuration files and
 the TCCStateStore for tracking applied configurations and status.
+
 The TCCService implements the TCCServiceInterface protocol, allowing
 it to be used interchangeably with other implementations if needed.
+
+The TccPlatformCapability class is used to probe the platform's capabilities
+and validate the requested TCC configuration against what the platform supports.
 
 """
 
@@ -20,11 +24,15 @@ import logging
 from pathlib import Path
 from typing import Any, Dict
 
+from time_config_hub.infra.linux.tcc.platform_capability import TccPlatformCapability
 from time_config_hub.services.common.config_parser import ConfigParserService
 from time_config_hub.exceptions import ConfigParseError, TCCConfigError
 from time_config_hub.services.common.service_interfaces import TCCServiceInterface
 from time_config_hub.services.tcc.state_store import TCCStateStore
 from time_config_hub.services.tcc.api import TCCConfigDataAPI
+from time_config_hub.services.tcc.capability_validator import (
+    validate_against_capability,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -113,11 +121,31 @@ class TCCService(TCCServiceInterface):
             logger.info(f"{tcc_api.summary()}")
             logger.info("=============================================================")
 
+            if tcc_api.list_of_subsystem_configured() == set():
+                logger.warning(
+                    f"TCC configuration file {config_file} does not configure any subsystems."
+                )
+                return True
+
             # Validate configuration consistency
             validation_issues = tcc_api.validate_consistency()
             if validation_issues:
                 for issue in validation_issues:
                     logger.warning(f"Configuration validation: {issue}")
+                return False
+
+            # Validate the parsed configuration against probed platform capabilities
+            capability = TccPlatformCapability.probe()
+            cap_errors, cap_warnings = validate_against_capability(tcc_api, capability)
+            for warning in cap_warnings:
+                logger.warning(f"TCC Platform capability: {warning}")
+
+            if cap_errors:
+                for error in cap_errors:
+                    logger.error(f"TCC Platform capability: {error}")
+                logger.error(
+                    f"TCC configuration file {config_file} is not supported by this platform."
+                )
                 return False
 
             logger.info(f"TCC configuration file {config_file} is valid.")
@@ -128,5 +156,7 @@ class TCCService(TCCServiceInterface):
             return False
 
         except Exception:
-            logger.exception(f"Unexpected error validating TCC configuration: {config_file}")
+            logger.exception(
+                f"Unexpected error validating TCC configuration: {config_file}"
+            )
             return False
